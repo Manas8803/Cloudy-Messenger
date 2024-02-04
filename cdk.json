@@ -1,5 +1,5 @@
 {
-  "app": "go mod download && go run cloudy_messenger.go",
+  "app": "go mod download && go run cloudy-messenger.go",
   "watch": {
     "include": [
       "**"

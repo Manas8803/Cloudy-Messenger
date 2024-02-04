@@ -1,4 +1,4 @@
-module cloudy_messenger
+module cloudy-messenger
 
 go 1.18
 

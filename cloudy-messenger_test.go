@@ -9,7 +9,7 @@ package main
 // )
 
 // example tests. To run these tests, uncomment this file along with the
-// example resource in cloudy_messenger_test.go
+// example resource in cloudy-messenger_test.go
 // func TestCloudyMessengerStack(t *testing.T) {
 // 	// GIVEN
 // 	app := awscdk.NewApp(nil)
