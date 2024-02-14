@@ -1,0 +1,7 @@
+
+build : ./deploy-scripts/cloudy-messenger.go
+	GOOS=linux GOARCH=amd64 go build -o ./fetch-service/build/main ./fetch-service/cmd/main.go   
+    GOOS=linux GOARCH=amd64 go build -o ./notify-service/build/main ./notify-service/main.go
+    zip -r ./deploy-scripts/fetch-service.zip ./fetch-service
+    zip -r ./deploy-scripts/notify-service.zip ./notify-service
+	cd deploy-scripts && cdk deploy
