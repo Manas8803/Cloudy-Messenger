@@ -1,6 +1,7 @@
 package utility
 
 import (
+	"encoding/json"
 	"log"
 	"os"
 
@@ -16,7 +17,7 @@ type Payload_Body struct {
 	Body string `json:"body"`
 }
 
-func InvokeLambda() error {
+func InvokeLambda(email string) error {
 	sess, err := session.NewSession()
 	if err != nil {
 		log.Println("Error in creating session : ", err.Error())
@@ -24,25 +25,22 @@ func InvokeLambda() error {
 	}
 
 	client := lambda.New(sess)
+	data, err := json.Marshal(Data{Email: email})
+	if err != nil {
+		log.Println("Error in marshalling data : ", err.Error())
+		return err
+	}
 
-	//! DO NOT REMOVE
-	// data, err := json.Marshal(Data{Email: email})
-	// if err != nil {
-	// 	log.Println("Error in marshalling data : ", err.Error())
-	// 	return err
-	// }
-
-	// body := Payload_Body{Body: string(data)}
-	// payload, err := json.Marshal(body)
-	// if err != nil {
-	// 	log.Println("Error in marshalling payload : ", err.Error())
-	// 	return err
-	// }
-	//!
+	body := Payload_Body{Body: string(data)}
+	payload, err := json.Marshal(body)
+	if err != nil {
+		log.Println("Error in marshalling payload : ", err.Error())
+		return err
+	}
 
 	input := &lambda.InvokeInput{
-		FunctionName: aws.String(os.Getenv("NOTIFY_FUNC_ARN")),
-		// Payload:        payload,
+		FunctionName:   aws.String(os.Getenv("NOTIFY_FUNC_ARN")),
+		Payload:        payload,
 		InvocationType: aws.String("Event"),
 	}
 
