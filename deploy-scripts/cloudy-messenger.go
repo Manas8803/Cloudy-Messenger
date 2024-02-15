@@ -4,8 +4,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/Manas8803/Cloudy-Messenger/deploy-scripts/event"
+	"github.com/Manas8803/Cloudy-Messenger/deploy-scripts/roles"
 	"github.com/aws/aws-cdk-go/awscdk/v2"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
 	"github.com/aws/constructs-go/constructs/v10"
@@ -29,7 +30,7 @@ func NewCloudyMessengerStack(scope constructs.Construct, id string, props *Cloud
 		TopicName:   jsii.String("CloudyMessengerTopic"),
 		DisplayName: jsii.String("Cloudy Messenger Notifications"),
 	})
-	emailAddresses := []string{"manasahavegeta@gmail.com", "sahamm@rknec.edu", "mishraas_3@rknec.edu", "manassaha0803@gmail.com"}
+	emailAddresses := []string{"manasahavegeta@gmail.com", "sahamm@rknec.edu", "manassaha0803@gmail.com"}
 
 	//* Subscribe each email address
 	for _, email := range emailAddresses {
@@ -40,22 +41,25 @@ func NewCloudyMessengerStack(scope constructs.Construct, id string, props *Cloud
 		})
 	}
 
+	publish_role := roles.CreatePublishRole(stack, sns_topic);
+
 	//* Lambda function - notfiy service
 	notify_handler := awslambda.NewFunction(stack, jsii.String("Notify-Lambda"), &awslambda.FunctionProps{
 		Code:    awslambda.Code_FromAsset(jsii.String("notify-service.zip"), nil),
 		Runtime: awslambda.Runtime_GO_1_X(),
 		Handler: jsii.String("/notify-service/build/main"),
 		Timeout: awscdk.Duration_Seconds(jsii.Number(6)),
+		Role : publish_role,
 		Environment: &map[string]*string{
 			"SNS_TOPIC_ARN": jsii.String(*sns_topic.TopicArn()),
 		},
 		
 	})
 
-	invoke_role := createInvocationRole(stack, notify_handler);
+	invoke_role := roles.CreateInvocationRole(stack, notify_handler);
 
 	//* Lambda function - fetch service
-	awslambda.NewFunction(stack, jsii.String("Fetch-Lambda"), &awslambda.FunctionProps{
+	invoke_handler := awslambda.NewFunction(stack, jsii.String("Fetch-Lambda"), &awslambda.FunctionProps{
 		Code:    awslambda.Code_FromAsset(jsii.String("fetch-service.zip"), nil),
 		Runtime: awslambda.Runtime_GO_1_X(),
 		Handler: jsii.String("/fetch-service/build/main"),
@@ -66,6 +70,8 @@ func NewCloudyMessengerStack(scope constructs.Construct, id string, props *Cloud
 			"WEATHER_API_KEY": jsii.String(os.Getenv("WEATHER_API_KEY")),
 		},
 	})
+
+	event.CreateDailyScheduler(stack, invoke_handler);
 
 	return stack
 }
@@ -95,19 +101,4 @@ func env() *awscdk.Environment {
 		Account: jsii.String(os.Getenv("CDK_DEFAULT_ACCOUNT")),
 		Region:  jsii.String(os.Getenv("CDK_DEFAULT_REGION")),
 	}
-}
-
-
-func createInvocationRole(stack awscdk.Stack, notify_handler awslambda.Function) awsiam.Role {
-	role := awsiam.NewRole(stack, jsii.String("Invoke-Role"), &awsiam.RoleProps{
-    AssumedBy: awsiam.NewServicePrincipal(jsii.String("lambda.amazonaws.com"), &awsiam.ServicePrincipalOpts{}),
-	
-	})
-
-	role.AddToPolicy(awsiam.NewPolicyStatement(&awsiam.PolicyStatementProps{
-    Actions:   &[]*string{jsii.String("lambda:InvokeFunction")},
-    Resources: &[]*string{jsii.String(*notify_handler.FunctionArn())},
-	}))
-
-	return role
 }
